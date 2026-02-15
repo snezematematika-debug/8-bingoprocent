@@ -1,0 +1,51 @@
+
+ИНСТРУКЦИИ ЗА FIREBASE ИНТЕГРАЦИЈА (ЗА РЕАЛНО ВРЕМЕ)
+
+За да ја направите апликацијата целосно функционална во училница (на различни уреди), заменете го BroadcastChannel со Firebase Realtime Database.
+
+1. Одете на https://console.firebase.google.com/ и креирајте нов проект.
+2. Одете во "Realtime Database" и кликнете "Create Database".
+3. Поставете ги правилата за пристап на "public" за тестирање (или соодветни за продукција).
+4. Копирајте го Firebase Config објектот од поставките на проектот.
+
+ИНСТАЛАЦИЈА:
+`npm install firebase`
+
+КОД ПРОМЕНИ (во App.tsx):
+
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, onValue, set, update, push } from "firebase/database";
+
+const firebaseConfig = {
+  apiKey: "ВАШИОТ_API_KEY",
+  authDomain: "ВАШИОТ_DOMAIN",
+  databaseURL: "ВАШИОТ_DB_URL",
+  projectId: "ВАШИОТ_PROJECT_ID",
+  storageBucket: "ВАШИОТ_BUCKET",
+  messagingSenderId: "ВАШИОТ_SENDER_ID",
+  appId: "ВАШИОТ_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Во App.tsx заменете го SyncService со Firebase refs:
+useEffect(() => {
+  const gameRef = ref(db, 'gameState');
+  const unsubscribe = onValue(gameRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) setGameState(data);
+  });
+  return () => unsubscribe();
+}, []);
+
+// За ажурирање на состојбата:
+const updateGlobalState = (newState: Partial<GameState>) => {
+  update(ref(db, 'gameState'), newState);
+};
+
+// За Бинго повик:
+const claimBingo = (name: string) => {
+  const winnersRef = ref(db, 'gameState/bingoWinners');
+  push(winnersRef, { name, timestamp: Date.now() });
+};
