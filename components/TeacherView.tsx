@@ -31,6 +31,34 @@ const TeacherView: React.FC<TeacherViewProps> = ({ gameState, updateState }) => 
     }
   };
 
+  const exportResults = () => {
+    if (gameState.bingoWinners.length === 0) {
+      alert("Нема резултати за извоз.");
+      return;
+    }
+
+    // UTF-8 BOM за правилен приказ на кирилица во Excel
+    const BOM = "\uFEFF";
+    let csvContent = BOM + "Ранг,Име на ученик,Време на Бинго\n";
+    
+    gameState.bingoWinners.forEach((winner, index) => {
+      const time = new Date(winner.timestamp).toLocaleTimeString('mk-MK');
+      csvContent += `${index + 1},"${winner.name}",${time}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStr = new Date().toLocaleDateString('mk-MK').replace(/\//g, '-');
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `бинго-резултати-${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Main Action Area */}
@@ -93,7 +121,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({ gameState, updateState }) => 
 
         {/* History Chips */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Претходни одговори</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Претходни одговори</h4>
+          </div>
           <div className="flex flex-wrap gap-2">
             {gameState.history.length > 0 ? (
               gameState.history.slice(0, -1).reverse().map(id => (
@@ -110,13 +140,22 @@ const TeacherView: React.FC<TeacherViewProps> = ({ gameState, updateState }) => 
 
       {/* Sidebar - Winners */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#1e293b] rounded-[2rem] shadow-2xl overflow-hidden h-full">
-          <div className="bg-indigo-600 p-8">
+        <div className="bg-[#1e293b] rounded-[2rem] shadow-2xl overflow-hidden h-full flex flex-col">
+          <div className="bg-indigo-600 p-8 flex justify-between items-center">
             <h3 className="text-xl font-black text-white flex items-center gap-3">
               <i className="fa-solid fa-crown text-yellow-400"></i> ПОБЕДНИЦИ
             </h3>
+            {gameState.bingoWinners.length > 0 && (
+              <button 
+                onClick={exportResults}
+                className="w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-xl flex items-center justify-center transition-colors"
+                title="Извези резултати"
+              >
+                <i className="fa-solid fa-file-export"></i>
+              </button>
+            )}
           </div>
-          <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+          <div className="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
             {gameState.bingoWinners.length > 0 ? (
               gameState.bingoWinners.map((winner, idx) => (
                 <div key={idx} className={`flex items-center justify-between p-5 rounded-2xl transition-all ${idx === 0 ? 'bg-indigo-500/20 border border-indigo-500/30' : 'bg-slate-800/50'}`}>
